@@ -26,3 +26,5 @@ export const buildArticle = (overrides: Partial<NewArticle> = {}): NewArticle =>
     ...overrides,
   };
 };
+
+export const buildTag = (): string => `tag${unique()}`;

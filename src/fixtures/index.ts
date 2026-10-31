@@ -1,14 +1,30 @@
 import { test as base, request as pwRequest, expect } from '@playwright/test';
 import { ConduitApi } from '../api/client';
-import type { User } from '../api/types';
+import type { Article, User } from '../api/types';
 import { BASE_URL } from '../config';
-import { buildUser } from '../data/builders';
+import { buildArticle, buildUser } from '../data/builders';
 
 type WorkerUser = User & { password: string };
 
-export const test = base.extend<{ api: ConduitApi }>({
+export const test = base.extend<{
+  api: ConduitApi;
+  otherUser: User;
+  published: { author: User; article: Article };
+}>({
   api: async ({ request }, use) => {
     await use(new ConduitApi(request));
+  },
+
+  // A freshly registered user, for tests that need a second actor.
+  otherUser: async ({ api }, use) => {
+    await use(await api.register(buildUser()));
+  },
+
+  // A freshly registered author who has published one article.
+  published: async ({ api }, use) => {
+    const author = await api.register(buildUser());
+    const article = await api.createArticle(author.token, buildArticle());
+    await use({ author, article });
   },
 });
 
