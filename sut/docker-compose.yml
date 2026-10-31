@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: conduit
+      POSTGRES_PASSWORD: conduit
+      POSTGRES_DB: conduit
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U conduit -d conduit"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  app:
+    build:
+      context: .
+      args:
+        SUT_REPO: ${SUT_REPO}
+        SUT_SHA: ${SUT_SHA}
+    environment:
+      JWT_KEY: ci-only-not-a-secret
+      PROD_DB_DIALECT: postgres
+      PROD_DB_HOSTNAME: db
+      PROD_DB_USERNAME: conduit
+      PROD_DB_PASSWORD: conduit
+      PROD_DB_NAME: conduit
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/articles').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
