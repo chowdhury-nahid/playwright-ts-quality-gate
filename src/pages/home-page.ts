@@ -1,23 +1,32 @@
 import type { Locator, Page } from '@playwright/test';
+import { ArticleList } from '../components/article-list';
 
 export class HomePage {
-  constructor(private readonly page: Page) {}
+  private readonly articles: ArticleList;
+
+  constructor(private readonly page: Page) {
+    this.articles = new ArticleList(page);
+  }
 
   async goto(): Promise<void> {
     await this.page.goto('/#/');
   }
 
-  /** Logged-in users land on the (empty) personal feed; the global feed lists everything. */
+  /** Logged-in users land on their own feed (followed authors); the global feed lists everything. */
   async openGlobalFeed(): Promise<void> {
     await this.page.getByText('Global Feed').click();
   }
 
-  /** Article cards are plain divs with this class; the app offers no role or test id. */
   articleCard(title: string): Locator {
-    return this.page.locator('.article-preview').filter({ has: this.page.getByRole('heading', { name: title }) });
+    return this.articles.card(title);
   }
 
   favoriteButton(title: string): Locator {
-    return this.articleCard(title).getByRole('button');
+    return this.articles.favoriteButton(title);
+  }
+
+  /** Shown once a feed has loaded and is empty; use it to avoid asserting "hidden" while still loading. */
+  get noArticlesMessage(): Locator {
+    return this.page.getByText('No articles available.');
   }
 }
