@@ -1,0 +1,29 @@
+{
+  "name": "playwright-ts-quality-gate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TypeScript Playwright suite with a CI quality gate, run against a pinned self-hosted app",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test",
+    "sut:local": "bash sut/run-local.sh start",
+    "sut:local:stop": "bash sut/run-local.sh stop",
+    "sut:up": "docker compose -f sut/docker-compose.yml up -d --build --wait",
+    "sut:down": "docker compose -f sut/docker-compose.yml down -v"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.14.0",
+    "eslint-plugin-playwright": "^2.12.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1"
+  }
+}
