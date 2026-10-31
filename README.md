@@ -1,3 +1,5 @@
+[![ci](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/workflows/ci.yml/badge.svg)](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/workflows/ci.yml)
+
 # playwright-ts-quality-gate
 
 TypeScript Playwright suite (API and UI) run against a pinned, self-hosted Conduit app, with a CI workflow that
@@ -18,6 +20,8 @@ Needs Node 22, and either Docker or just network access.
 Stop the app with `npm run sut:down` (Docker, also wipes data) or `npm run sut:local:stop`.
 
 ## What is tested
+
+First green CI run: [13 passed in 4.0s](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/runs/41178521902) (Docker + Postgres, Chromium).
 
 - `tests/api/`: 5 API tests (registration, login, rejected login, article creation, fixture check).
 - `tests/e2e/`: 8 UI tests on Chromium (sign up, login, bad login, publish, feed, favorite, logout, saved-login check).
