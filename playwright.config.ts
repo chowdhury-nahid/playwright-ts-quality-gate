@@ -18,7 +18,7 @@ export default defineConfig({
     { name: 'api', testMatch: 'api/**/*.spec.ts' },
     {
       name: 'e2e-chromium',
-      testMatch: 'e2e/**/*.spec.ts',
+      testMatch: ['e2e/**/*.spec.ts', 'hybrid/**/*.spec.ts'],
       use: { ...devices['Desktop Chrome'] },
     },
   ],

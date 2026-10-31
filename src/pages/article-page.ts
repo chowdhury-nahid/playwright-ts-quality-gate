@@ -16,9 +16,9 @@ export class ArticlePage {
     return this.page.locator('.card').filter({ hasText: text });
   }
 
-  /** The app asks "Want to delete the article?" with a browser confirm dialog; Playwright dismisses it unless accepted. */
+  /** The app asks "Want to delete the article?" with a browser confirm dialog; Playwright dismisses it unless accepted. The page shows the button twice (banner and footer of the article), both do the same, so the first is used. */
   async deleteArticle(): Promise<void> {
     this.page.once('dialog', (dialog) => void dialog.accept());
-    await this.page.getByRole('button', { name: 'Delete Article' }).click();
+    await this.page.getByRole('button', { name: 'Delete Article' }).first().click();
   }
 }

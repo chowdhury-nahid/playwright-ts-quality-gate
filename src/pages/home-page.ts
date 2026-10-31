@@ -27,6 +27,6 @@ export class HomePage {
 
   /** Shown once a feed has loaded and is empty; use it to avoid asserting "hidden" while still loading. */
   get noArticlesMessage(): Locator {
-    return this.page.getByText('No articles available.');
+    return this.page.getByText('Articles not available.');
   }
 }
