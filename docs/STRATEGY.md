@@ -29,15 +29,19 @@ Each section says what is in place today and what is planned, so nothing here cl
 - **Test data is created per test through the API with unique values.** No test depends on another test or on a
   clean database, so the suite is safe to run in parallel and against a database that already holds data.
 - **A check must be able to fail.** Before a lint rule or an assertion is trusted, it is shown failing: the
-  rule against fixed sleeps was demonstrated on a deliberate violation, and the hybrid test that checks an author
-  disappears from a feed was shown failing when the unfollow step was removed.
+  rule against fixed sleeps was demonstrated on a deliberate violation, the hybrid test that checks an author
+  disappears from a feed was shown failing when the unfollow step was removed, and the fail-on-flaky gate was shown
+  failing on a deliberately flaky test (ADR 0003).
 
 ## What is deliberately not tested, and why
 
 - **Visual appearance and pixel layout.** The app is a sample app with a stock theme; screenshots would add
   maintenance and little signal.
-- **Every browser.** Today the suite runs on Chromium. Firefox and WebKit are planned for a nightly run, where the
-  cost of a slower job does not slow pull requests.
+- **Every browser on every change.** Pull requests and `main` run on Chromium. A nightly run covers Chromium,
+  Firefox and WebKit, shuffled, with every test repeated three times, and merges the three reports into one.
+- **The global feed.** It is a shared list of the newest 3 articles from all users (finding F1), so a reliable
+  assertion about it is not possible while other tests write to it. UI tests look at lists scoped to their own data
+  (see ADR 0005). The API tests cover listing and filtering.
 - **Accessibility and security scanning.** Valuable, but they are separate disciplines with their own tooling.
   Out of scope here; ownership checks are covered, penetration testing is not.
 - **Performance and load.** Planned as a later, separate piece (a load test in CI), not mixed in here.
@@ -56,12 +60,17 @@ defect is never hidden by skipping a test or loosening an assertion.
 In place today:
 - Waiting is done on conditions (auto-waiting, web-first assertions, polling). Fixed sleeps are banned by a lint
   rule that fails the build.
-- Retries are not used to make a build green. Locally there are none.
+- CI retries a failed test once, only to keep the trace of the first failure. A test that passes only on retry
+  fails the run (ADR 0003). Locally there are no retries.
+- A nightly run shuffles the test order and repeats every test three times on three browsers, to expose hidden
+  dependencies between tests and browser-specific behaviour.
 - Tests were run repeatedly against a database that already held data, to check they do not depend on a clean one.
+- This works: the first nightly run flagged a test as flaky and failed. The cause was a shared list (the global
+  feed shows only the newest 3 articles of all users), so another test could push the article off the page. It was
+  reproduced locally, fixed by reading lists scoped to the test's own data, and written up in ADR 0005. The retry
+  alone would have hidden it.
 
-Planned for the next phase, not built yet:
-- CI fails on a test that passes only on retry, instead of hiding it behind retries.
-- A nightly run repeats the quick tests many times and runs tests in random order to expose hidden dependencies.
+Not built yet:
 - A test that cannot be fixed quickly is quarantined: marked with a reason and an issue, excluded from the gate,
   and tracked with a time limit. Quarantine is not deletion and not a fixed sleep.
 
@@ -73,7 +82,7 @@ Planned for the next phase, not built yet:
   that can fail honestly, plus the ability to show a deliberate regression turning the build red.
 - **Defects as expected failures over a bug list alone.** A list goes stale. A test that flips red when the defect
   is fixed does not.
-- **Speed versus coverage in CI.** Today every push runs the whole suite on one browser, which is fast enough that a
-  split would add complexity for no gain. When the suite grows or more browsers are added, pull requests will run a
-  fast subset and the full matrix will run after merge and nightly; that split will be justified with measured
-  timings, not assumed.
+- **Speed versus coverage in CI.** Pull requests and `main` run the whole suite on one browser in one job. The
+  tests take seconds inside a job of about two minutes, most of which is installing and starting the app, so
+  sharding would repeat the slow part for no gain (ADR 0004). The parallelism that is worth having is the nightly
+  run across three browsers. Sharding will be added when the tests outgrow the set-up time.
