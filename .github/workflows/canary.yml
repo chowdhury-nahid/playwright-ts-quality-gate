@@ -28,7 +28,10 @@ jobs:
       - name: Use the next Playwright (not saved to package.json)
         run: npm install --no-save @playwright/test@next
       - name: Show the version under test
-        run: npx playwright --version
+        run: |
+          VERSION="$(npx playwright --version)"
+          echo "$VERSION"
+          echo "PW_VERSION=$VERSION" >> "$GITHUB_ENV"
       - run: npx playwright install --with-deps chromium
       - name: Start the app under test
         run: npm run sut:up
@@ -50,10 +53,10 @@ jobs:
             const open = await github.rest.issues.listForRepo({ ...context.repo, state: 'open', labels: label });
             const url = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             if (open.data.length > 0) {
-              await github.rest.issues.createComment({ ...context.repo, issue_number: open.data[0].number, body: `Failed again: ${url}` });
+              await github.rest.issues.createComment({ ...context.repo, issue_number: open.data[0].number, body: `Failed again on ${process.env.PW_VERSION}: ${url}` });
             } else {
               await github.rest.issues.create({ ...context.repo, title, labels: [label],
-                body: `The suite fails on the next Playwright release channel.\n\nRun: ${url}\n\nThis does not block pull requests. Check the release notes for the version shown in the run, then fix the test or report the regression upstream.` });
+                body: `The suite fails on the next Playwright release channel.\n\nVersion under test: ${process.env.PW_VERSION}\n\nRun: ${url}\n\nThis does not block pull requests. Check the release notes for the version shown in the run, then fix the test or report the regression upstream.` });
             }
       - name: App logs on failure
         if: failure()
