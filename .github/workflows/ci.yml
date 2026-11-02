@@ -37,9 +37,28 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+      - name: Keep the report for Pages (main only)
+        if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report/
       - name: App logs on failure
         if: failure()
         run: docker compose -f sut/docker-compose.yml logs --no-color
       - name: Stop the app
         if: always()
         run: npm run sut:down
+
+  publish-report:
+    needs: test
+    if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.test.result != 'cancelled'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
