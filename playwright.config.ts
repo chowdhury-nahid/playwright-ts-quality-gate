@@ -1,14 +1,23 @@
 import { defineConfig, devices } from '@playwright/test';
 import { BASE_URL } from './src/config';
 
+const isCI = !!process.env.CI;
+const useBlob = !!process.env.PW_BLOB;
+
+const uiTests = ['e2e/**/*.spec.ts', 'hybrid/**/*.spec.ts'];
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
-  reporter: process.env.CI
-    ? [['list'], ['html', { open: 'never' }]]
+  forbidOnly: isCI,
+  // A test that passes only on retry is a defect in the test or the product: the run fails.
+  // The retry still happens so the trace of the first failure is kept for diagnosis.
+  failOnFlakyTests: isCI,
+  retries: isCI ? 1 : 0,
+  retryStrategy: 'isolated',
+  workers: isCI ? 2 : undefined,
+  reporter: isCI
+    ? [['list'], useBlob ? ['blob'] : ['html', { open: 'never' }]]
     : [['list']],
   use: {
     baseURL: BASE_URL,
@@ -16,10 +25,8 @@ export default defineConfig({
   },
   projects: [
     { name: 'api', testMatch: 'api/**/*.spec.ts' },
-    {
-      name: 'e2e-chromium',
-      testMatch: ['e2e/**/*.spec.ts', 'hybrid/**/*.spec.ts'],
-      use: { ...devices['Desktop Chrome'] },
-    },
+    { name: 'e2e-chromium', testMatch: uiTests, use: { ...devices['Desktop Chrome'] } },
+    { name: 'e2e-firefox', testMatch: uiTests, use: { ...devices['Desktop Firefox'] } },
+    { name: 'e2e-webkit', testMatch: uiTests, use: { ...devices['Desktop Safari'] } },
   ],
 });
