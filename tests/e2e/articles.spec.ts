@@ -4,6 +4,7 @@ import { Navbar } from '../../src/components/navbar';
 import { ArticlePage } from '../../src/pages/article-page';
 import { EditorPage } from '../../src/pages/editor-page';
 import { HomePage } from '../../src/pages/home-page';
+import { ProfilePage } from '../../src/pages/profile-page';
 
 test.describe('articles', () => {
   test('a logged-in user can publish an article @smoke', async ({ page }) => {
@@ -18,28 +19,29 @@ test.describe('articles', () => {
     await expect(articlePage.heading(article.title)).toBeVisible();
   });
 
-  test('a published article appears in the global feed @smoke', async ({ page, api, workerUser }) => {
+  // These two tests read the author's own profile, not the global feed. The global feed is a shared list of the
+  // newest 3 articles from everyone (docs/FINDINGS.md F1), so a concurrent test can push an article off the page.
+  // See docs/decisions/0005-tests-do-not-read-shared-lists.md.
+  test('a published article appears on its author\'s profile @smoke', async ({ page, api, workerUser }) => {
     const article = buildArticle();
     await api.createArticle(workerUser.token, article);
-    const home = new HomePage(page);
+    const profile = new ProfilePage(page);
 
-    await home.goto();
-    await home.openGlobalFeed();
+    await profile.gotoArticles(workerUser.username);
 
-    await expect(home.articleCard(article.title)).toBeVisible();
+    await expect(profile.articles.card(article.title)).toBeVisible();
   });
 
-  test('favoriting an article from the feed increments its count', async ({ page, api, workerUser }) => {
+  test('favoriting an article from a list increments its count', async ({ page, api, workerUser }) => {
     const article = buildArticle();
     await api.createArticle(workerUser.token, article);
-    const home = new HomePage(page);
+    const profile = new ProfilePage(page);
 
-    await home.goto();
-    await home.openGlobalFeed();
-    await expect(home.favoriteButton(article.title)).toContainText('0');
-    await home.favoriteButton(article.title).click();
+    await profile.gotoArticles(workerUser.username);
+    await expect(profile.articles.favoriteButton(article.title)).toContainText('0');
+    await profile.articles.favoriteButton(article.title).click();
 
-    await expect(home.favoriteButton(article.title)).toContainText('1');
+    await expect(profile.articles.favoriteButton(article.title)).toContainText('1');
   });
 
   test('a logged-in user can log out @smoke', async ({ page, workerUser }) => {

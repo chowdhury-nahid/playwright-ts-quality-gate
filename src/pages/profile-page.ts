@@ -8,6 +8,11 @@ export class ProfilePage {
     this.articles = new ArticleList(page);
   }
 
+  /** The "My Articles" tab: a list only this user writes to, newest first. */
+  async gotoArticles(username: string): Promise<void> {
+    await this.page.goto(`/#/profile/${username}`);
+  }
+
   async gotoFavorites(username: string): Promise<void> {
     await this.page.goto(`/#/profile/${username}/favorites`);
   }
