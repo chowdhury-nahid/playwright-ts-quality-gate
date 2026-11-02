@@ -1,0 +1,76 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: '23 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    env:
+      PW_BLOB: '1'
+      PLAYWRIGHT_BLOB_OUTPUT_FILE: blob-report/blob-${{ matrix.browser }}.zip
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Start the app under test
+        run: npm run sut:up
+      - name: Run tests (shuffled, each test three times)
+        # The api project does not depend on a browser, so it runs once, in the chromium job.
+        run: >
+          npx playwright test
+          --project=e2e-${{ matrix.browser }}
+          ${{ matrix.browser == 'chromium' && '--project=api' || '' }}
+          --shuffle --repeat-each=3
+      - name: Upload blob report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-${{ matrix.browser }}
+          path: blob-report/
+          retention-days: 7
+      - name: App logs on failure
+        if: failure()
+        run: docker compose -f sut/docker-compose.yml logs --no-color
+      - name: Stop the app
+        if: always()
+        run: npm run sut:down
+
+  merge:
+    needs: browsers
+    if: always() && needs.browsers.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: blob-*
+          path: all-blob-reports
+          merge-multiple: true
+      - name: Merge into one HTML report
+        run: npx playwright merge-reports --reporter html ./all-blob-reports
+      - name: Upload merged report
+        uses: actions/upload-artifact@v4
+        with:
+          name: merged-report
+          path: playwright-report/
+          retention-days: 14
