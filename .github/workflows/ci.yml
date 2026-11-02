@@ -9,6 +9,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -26,7 +29,7 @@ jobs:
       - name: Start the app under test
         run: npm run sut:up
       - name: Run tests
-        run: npx playwright test
+        run: npx playwright test --project=api --project=e2e-chromium
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
