@@ -1,0 +1,63 @@
+name: canary
+
+on:
+  schedule:
+    - cron: '41 21 * * *'
+  workflow_dispatch:
+    inputs:
+      simulate_failure:
+        description: 'Fail on purpose, to prove the issue is opened'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  next:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Use the next Playwright (not saved to package.json)
+        run: npm install --no-save @playwright/test@next
+      - name: Show the version under test
+        run: npx playwright --version
+      - run: npx playwright install --with-deps chromium
+      - name: Start the app under test
+        run: npm run sut:up
+      - name: Run tests on the next Playwright
+        run: npx playwright test --project=api --project=e2e-chromium
+      - name: Simulated failure
+        if: ${{ inputs.simulate_failure }}
+        run: exit 1
+      - name: Open an issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Canary failed on the next Playwright';
+            const label = 'canary';
+            try {
+              await github.rest.issues.createLabel({ ...context.repo, name: label, color: 'fbca04' });
+            } catch (e) { /* label exists */ }
+            const open = await github.rest.issues.listForRepo({ ...context.repo, state: 'open', labels: label });
+            const url = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            if (open.data.length > 0) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: open.data[0].number, body: `Failed again: ${url}` });
+            } else {
+              await github.rest.issues.create({ ...context.repo, title, labels: [label],
+                body: `The suite fails on the next Playwright release channel.\n\nRun: ${url}\n\nThis does not block pull requests. Check the release notes for the version shown in the run, then fix the test or report the regression upstream.` });
+            }
+      - name: App logs on failure
+        if: failure()
+        run: docker compose -f sut/docker-compose.yml logs --no-color
+      - name: Stop the app
+        if: always()
+        run: npm run sut:down
