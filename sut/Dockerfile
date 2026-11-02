@@ -9,6 +9,8 @@ RUN git init . \
  && git remote add origin "$SUT_REPO" \
  && git fetch --depth 1 origin "$SUT_SHA" \
  && git checkout FETCH_HEAD
+COPY patches/ /patches/
+RUN for p in /patches/*.patch; do [ -e "$p" ] || continue; git apply "$p"; done
 RUN npm ci && npm run build -w frontend
 WORKDIR /app/backend
 ENV NODE_ENV=production PORT=3001

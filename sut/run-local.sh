@@ -17,6 +17,7 @@ start() {
     git -C "$DIR/app" remote add origin "$SUT_REPO"
     git -C "$DIR/app" fetch -q --depth 1 origin "$SUT_SHA"
     git -C "$DIR/app" checkout -q FETCH_HEAD
+    for p in "$HERE"/patches/*.patch; do [ -e "$p" ] || continue; git -C "$DIR/app" apply "$p"; done
     (cd "$DIR/app" && npm ci --no-audit --no-fund && npm install -w backend sqlite3 --no-audit --no-fund --no-save && npm run build -w frontend)
   fi
   # PROD_DB_HOSTNAME is used by sequelize as the sqlite storage path, so ':memory:' keeps the DB out of the checkout.
