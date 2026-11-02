@@ -33,6 +33,12 @@ Latest green CI run: [33 passed in 6.1s](https://github.com/chowdhury-nahid/play
 - App under test: [TonyMckes/conduit-realworld-example-app](https://github.com/TonyMckes/conduit-realworld-example-app),
   pinned by commit in `sut/.env` (MIT licence). It uses hash routing, so URLs look like `/#/login`.
 
+## How this was built
+
+Built with Claude Code. I directed the design and the checks; Claude Code wrote most of the code. Every lint rule
+and every expected-failure test was shown failing before it was trusted (see `docs/STRATEGY.md`), and the decisions
+behind the structure are recorded in `docs/decisions/`.
+
 ## Layout
 
 - `src/api/` typed API client (the only code that makes HTTP calls)

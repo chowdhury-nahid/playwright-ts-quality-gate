@@ -1,3 +1,4 @@
+# Throwaway credentials for a disposable container that exists only while the tests run.
 services:
   db:
     image: postgres:16-alpine
