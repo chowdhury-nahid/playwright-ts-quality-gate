@@ -1,0 +1,11 @@
+--- docs/agents/runs/run-3/before.ts	2026-11-03 16:51:14.660352204 +0000
++++ docs/agents/runs/run-3/after.ts	2026-11-03 16:51:14.662219319 +0000
+@@ -16,7 +16,7 @@
+     // buildArticle().body is a unique string from the suite's builders (there is no comment builder).
+     const body = `Comment ${buildArticle().body}`;
+     await page.getByRole('textbox', { name: 'Write a comment...' }).fill(body);
+-    await page.getByRole('button', { name: 'Post Comment' }).click();
++    await page.getByRole('button', { name: 'Send' }).click();
+     await expect(articlePage.comment(body)).toBeVisible();
+ 
+     await page.reload();

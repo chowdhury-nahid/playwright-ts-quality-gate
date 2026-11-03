@@ -1,0 +1,33 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [agents] › tests/agents/heal-target.spec.ts:9:3 › Article comments › a posted comment persists after reload (5.8s)
+
+
+  1) [agents] › tests/agents/heal-target.spec.ts:9:3 › Article comments › a posted comment persists after reload 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.card').filter({ hasText: 'Comment Body of mw0xdi6z10b2' })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('.card').filter({ hasText: 'Comment Body of mw0xdi6z10b2' }) with timeout 5000ms
+      - waiting for locator('.card').filter({ hasText: 'Comment Body of mw0xdi6z10b2' })
+
+
+      18 |     await page.getByRole('textbox', { name: 'Write a comment...' }).fill(body);
+      19 |     await page.getByRole('button', { name: 'Post Comment' }).click();
+    > 20 |     await expect(articlePage.comment(body)).toBeVisible();
+         |                                             ^
+      21 |
+      22 |     await page.reload();
+      23 |
+        at /home/user/playwright-ts-quality-gate/tests/agents/heal-target.spec.ts:20:45
+
+    Error Context: test-results/agents-heal-target-Article-c69a7-mment-persists-after-reload-agents/error-context.md
+
+  1 failed
+    [agents] › tests/agents/heal-target.spec.ts:9:3 › Article comments › a posted comment persists after reload 

@@ -1,0 +1,28 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [agents] › tests/agents/heal-target.spec.ts:9:3 › Article comments › a posted comment persists after reload (30.0s)
+
+
+  1) [agents] › tests/agents/heal-target.spec.ts:9:3 › Article comments › a posted comment persists after reload 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Post Comment' })
+
+
+      17 |     const body = `Comment ${buildArticle().body}`;
+      18 |     await page.getByRole('textbox', { name: 'Write a comment...' }).fill(body);
+    > 19 |     await page.getByRole('button', { name: 'Post Comment' }).click();
+         |                                                              ^
+      20 |     await expect(articlePage.comment(body)).toBeVisible();
+      21 |
+      22 |     await page.reload();
+        at /home/user/playwright-ts-quality-gate/tests/agents/heal-target.spec.ts:19:62
+
+    Error Context: test-results/agents-heal-target-Article-c69a7-mment-persists-after-reload-agents/error-context.md
+
+  1 failed
+    [agents] › tests/agents/heal-target.spec.ts:9:3 › Article comments › a posted comment persists after reload 
