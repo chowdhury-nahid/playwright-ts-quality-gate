@@ -38,6 +38,8 @@ Latest green CI run: [33 passed in 6.1s](https://github.com/chowdhury-nahid/play
 ## Quality gate
 
 - **Live report:** https://chowdhury-nahid.github.io/playwright-ts-quality-gate/ is rebuilt from `main` on every push.
+- **The check is enforced.** A ruleset on `main` requires the `test` job to pass, so changes reach `main` through pull
+  requests whose CI is green.
 - **A flaky test fails the build.** CI retries a failed test once to keep its trace, but a test that passes only on
   retry fails the run ([ADR 0003](docs/decisions/0003-fail-on-flaky-tests.md)).
 - **The gate was shown failing on a real regression.** [Pull request #8](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/pull/8)
