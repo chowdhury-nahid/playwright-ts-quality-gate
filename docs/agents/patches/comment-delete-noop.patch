@@ -1,0 +1,13 @@
+diff --git a/backend/controllers/comments.js b/backend/controllers/comments.js
+index 1a75e40..eef41fa 100644
+--- a/backend/controllers/comments.js
++++ b/backend/controllers/comments.js
+@@ -76,8 +76,6 @@ const deleteComment = async (req, res, next) => {
+       throw new ForbiddenError("comment");
+     }
+ 
+-    await comment.destroy();
+-
+     res.json({ message: { body: ["Comment deleted successfully"] } });
+   } catch (error) {
+     next(error);

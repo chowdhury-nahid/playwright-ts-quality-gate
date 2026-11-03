@@ -1,0 +1,12 @@
+diff --git a/backend/controllers/comments.js b/backend/controllers/comments.js
+index 1a75e40..f3e2f11 100644
+--- a/backend/controllers/comments.js
++++ b/backend/controllers/comments.js
+@@ -50,6 +50,7 @@ const createComment = async (req, res, next) => {
+       articleId: article.id,
+       userId: loggedUser.id,
+     });
++    await comment.destroy();
+ 
+     delete loggedUser.dataValues.token;
+     comment.dataValues.author = loggedUser;
