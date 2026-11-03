@@ -1,0 +1,1 @@
+Use the playwright-test-planner agent to plan tests for the article comments feature of the app under test (posting a comment on an article page, and deleting your own comment). Save the plan under specs/. Then use the playwright-test-generator agent to write the tests from the plan into tests/agents/. Follow docs/agents/guidance.md.
