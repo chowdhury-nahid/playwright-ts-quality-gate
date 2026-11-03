@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  -  1 [agents] › tests/agents/heal-target.spec.ts:14:8 › Article comments › a posted comment persists after reload
+
+  1 skipped

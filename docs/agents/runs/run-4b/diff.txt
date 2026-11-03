@@ -1,0 +1,16 @@
+--- docs/agents/runs/run-4b/before.ts	2026-11-03 17:07:11.427210473 +0000
++++ docs/agents/runs/run-4b/after.ts	2026-11-03 17:07:11.429010182 +0000
+@@ -6,7 +6,12 @@
+ import { ArticlePage } from '../../src/pages/article-page';
+ 
+ test.describe('Article comments', () => {
+-  test('a posted comment persists after reload', async ({ page, api, workerUser }) => {
++  // App defect, not a test defect: POST /api/articles/:slug/comments returns 201 with the new comment,
++  // but GET /api/articles/:slug/comments keeps returning {"comments":[]}, so the UI shows
++  // "There are no comments yet..." instead of the posted comment. Reproduced with a direct fetch,
++  // independent of the UI. Here the commenter is the article's author; the passing tests comment
++  // as a different user. Remove fixme once the backend lists comments the author posts on their own article.
++  test.fixme('a posted comment persists after reload', async ({ page, api, workerUser }) => {
+     // 1. Create article via API, post a comment through the UI, reload the page
+     const article = await api.createArticle(workerUser.token, buildArticle());
+     const articlePage = new ArticlePage(page);
