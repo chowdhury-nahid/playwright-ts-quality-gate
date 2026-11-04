@@ -30,4 +30,24 @@ Playwright is updated.
 
 ## Runs
 
-(Runs are added as they happen.)
+### Run 3: healer, legitimate UI change (button `Post Comment` becomes `Send`)
+
+- Setup: Playwright 1.64.1, repository at `89070f5`, patch `comment-ui-renamed.patch` applied while the local app was built. Test: `tests/agents/heal-target.spec.ts`, "a posted comment persists after reload".
+- Before the agent: the test failed with a 30 s timeout waiting for `getByRole('button', { name: 'Post Comment' })`.
+- Prompt (exactly): "The test 'a posted comment persists after reload' is failing. Use the playwright-test-healer agent to fix it."
+- Result: one line changed, `{ name: 'Post Comment' }` to `{ name: 'Send' }`. No other change, nothing skipped or marked fixme, no question asked. The agent says it re-ran the spec once and it passed.
+- After the agent, one run by the operator: 1 passed.
+- Artifacts: [`runs/run-3/`](agents/runs/run-3/) (prompt, agent message, before/after, diff, failing output, notes, after-run).
+- Review against the checklist: pending.
+
+### Run 4: healer, defect (a posted comment is not saved)
+
+- Setup: Playwright 1.64.1, repository at `89070f5`, patch `comment-not-saved.patch` applied while the local app was built. Same test as run 3.
+- Before the agent: the test failed at the assertion that the comment card is visible after clicking `Post Comment`.
+- Prompt: the same text as run 3.
+- Result: no locator or assertion changed. The agent added a comment and `test.fixme(true, 'SUT does not persist comments (createComment destroys the record)')` at the top of the test. The agent's message says the POST returned 201 and the following GET returned an empty list, and that it read `sut/patches/comment-not-saved.patch`. No question asked.
+- After the agent, one run by the operator: 1 skipped.
+- Artifacts: [`runs/run-4/`](agents/runs/run-4/).
+- Review against the checklist: pending.
+
+Tool-call totals reported by the harness: 7 (run 3), 19 (run 4). Per-tool counts were not available.
