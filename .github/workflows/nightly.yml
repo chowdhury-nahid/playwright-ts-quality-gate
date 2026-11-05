@@ -20,7 +20,7 @@ jobs:
       PW_BLOB: '1'
       PLAYWRIGHT_BLOB_OUTPUT_FILE: blob-report/blob-${{ matrix.browser }}.zip
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -55,7 +55,7 @@ jobs:
     if: always() && needs.browsers.result != 'cancelled'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
