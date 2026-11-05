@@ -21,7 +21,9 @@ export default defineConfig({
     : [['list']],
   use: {
     baseURL: BASE_URL,
-    trace: 'retain-on-first-failure',
+    // A failed test's trace keeps the DOM and the accessibility tree around each action (the aria part is plain text).
+    // No screen snapshots: the tree already says what was on the page.
+    trace: { mode: 'retain-on-first-failure', snapshots: { dom: true, aria: true, screen: false } },
   },
   projects: [
     { name: 'api', testMatch: 'api/**/*.spec.ts' },
