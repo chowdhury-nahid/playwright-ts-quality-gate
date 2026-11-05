@@ -46,7 +46,8 @@ test.describe('articles', () => {
 
   // The page's structure is checked as an accessibility tree (toMatchAriaSnapshot), not as separate locators:
   // the heading, the body, the owner's buttons and the comment form must all be there, in this order.
-  // The template was written from the real tree (page.ariaSnapshot()); the date is the only part matched by pattern.
+  // The template was written from the real tree (page.ariaSnapshot()). Patterns are used for the date and for the two
+  // owner buttons: their names start with a space in the Docker build and not in the local one.
   test('an article page keeps its structure @smoke', async ({ page, api, workerUser }) => {
     const article = buildArticle();
     const { slug } = await api.createArticle(workerUser.token, article);
@@ -59,8 +60,8 @@ test.describe('articles', () => {
       - heading "${article.title}" [level=1]
       - link "${workerUser.username}"
       - text: /\\w+ \\d{1,2}, \\d{4}/
-      - button "Delete Article"
-      - button "Edit Article"
+      - button /Delete Article/
+      - button /Edit Article/
       - paragraph: ${article.body}
       - textbox "Write a comment..."
       - button "Post Comment"
