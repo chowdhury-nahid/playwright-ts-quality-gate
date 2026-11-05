@@ -21,7 +21,7 @@ Stop the app with `npm run sut:down` (Docker, also wipes data) or `npm run sut:l
 
 ## What is tested
 
-Latest green CI run: [33 passed in 6.1s](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/runs/41185095836) (Docker + Postgres, Chromium).
+Latest green CI run on `main` with all of the tests below: [36 passed in 12.9s](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/runs/41971019463) (Docker + Postgres, Chromium).
 
 - `tests/api/`: 21 API tests. Accounts, article authorization, comments, favorites, follows and the feed, filters
   and paging, and 4 expected-failure tests for known app defects.
