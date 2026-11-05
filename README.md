@@ -5,7 +5,7 @@
 TypeScript Playwright suite (API and UI) run against a pinned, self-hosted Conduit app, with a CI workflow that
 lints, type-checks, starts the app and runs the tests.
 
-Status: phase 3 of 5. Not built yet: the test-agent experiment and the Playwright feature log (phase 4), performance testing (phase 5).
+Status: phase 4 of 5. Not built yet: performance testing (phase 5).
 Design decisions are in `docs/decisions/`; the reasoning behind the tests is in [docs/STRATEGY.md](docs/STRATEGY.md).
 
 ## Run it
@@ -21,15 +21,17 @@ Stop the app with `npm run sut:down` (Docker, also wipes data) or `npm run sut:l
 
 ## What is tested
 
-Latest green CI run: [33 passed in 6.1s](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/runs/41185095836) (Docker + Postgres, Chromium).
+Latest green CI run on `main` with all of the tests below: [36 passed in 12.9s](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/runs/41971019463) (Docker + Postgres, Chromium).
 
 - `tests/api/`: 21 API tests. Accounts, article authorization, comments, favorites, follows and the feed, filters
   and paging, and 4 expected-failure tests for known app defects.
 - `tests/hybrid/`: 4 tests where the API sets up state and the UI checks it.
-- `tests/e2e/`: 8 UI tests (sign up, login, bad login, publish, own profile list, favorite, logout, saved-login check).
+- `tests/e2e/`: 11 UI tests (sign up, login, bad login, publish, own profile list, favorite, logout, saved-login check,
+  an article page's structure as an accessibility snapshot, posting a comment, deleting a comment).
   They look at lists scoped to their own data, not the shared global feed, so the global feed has no UI test (see
   `docs/decisions/0005-tests-do-not-read-shared-lists.md`).
 - [docs/STRATEGY.md](docs/STRATEGY.md): what is tested at which level, and what is left out.
+- [docs/AGENTS-LOG.md](docs/AGENTS-LOG.md) and [docs/FEATURES.md](docs/FEATURES.md): see "Test agents and new features" below.
 - [docs/FINDINGS.md](docs/FINDINGS.md): four defects found in the app under test. Each is a test that asserts the
   correct behaviour and is marked as an expected failure, so the build turns red the day the app is fixed.
 - App under test: [TonyMckes/conduit-realworld-example-app](https://github.com/TonyMckes/conduit-realworld-example-app),
@@ -55,6 +57,16 @@ Latest green CI run: [33 passed in 6.1s](https://github.com/chowdhury-nahid/play
 - **Dependency updates:** Dependabot proposes weekly updates for npm and GitHub Actions; each is judged by its CI result.
 - **No sharding yet**, with the measurements behind that choice in [ADR 0004](docs/decisions/0004-no-sharding-yet.md).
 
+## Test agents and new features
+
+- **Test agents:** [docs/AGENTS-LOG.md](docs/AGENTS-LOG.md) records five runs of Playwright's planner, generator and healer on
+  the comments feature, each reviewed against a fixed checklist and against deliberate defects. The short version: the
+  agents explored the app accurately, none of the generated tests had been run by its author, and when the app was at fault
+  the healer said so and then marked the test `fixme`, which would have kept the build green. Two reviewed tests were kept.
+  The rules this led to are in [docs/STRATEGY.md](docs/STRATEGY.md).
+- **Playwright features:** [docs/FEATURES.md](docs/FEATURES.md) lists what the suite uses (with the release and the proof) and what
+  was looked at and left out, and why.
+
 ## How this was built
 
 Built with Claude Code. I directed the design and the checks; Claude Code wrote most of the code. Every lint rule
@@ -69,4 +81,4 @@ behind the structure are recorded in `docs/decisions/`.
 - `tests/api/`, `tests/hybrid/`, `tests/e2e/` the tests, grouped by level
 - `src/data/` builders for unique test data
 - `sut/` the app under test (Docker Compose for CI, a no-Docker mode for local use)
-- `docs/` strategy, findings and `decisions/` (architecture decision records)
+- `docs/` strategy, findings, the agents log, the features log and `decisions/` (architecture decision records)
