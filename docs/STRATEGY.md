@@ -12,7 +12,7 @@ Each section says what is in place today and what is planned, so nothing here cl
 |---|---|---|---|
 | Accounts: register, log in, stay logged in | Everything else needs an identity. A broken login locks every user out. | Medium: token handling and validation are easy to get wrong | API (validation, rejection paths), UI (sign up, log in, bad login, saved login, log out) |
 | Authoring: create, edit, delete articles | The core content flow. Authorization mistakes let one user change another's work. | Medium to high: ownership checks are per endpoint | API (create, validation, ownership on update and delete), UI (publish), hybrid (delete in the UI, verify in the API) |
-| Social: comments, favorites, follows, feed | Engagement features; wrong counts or leaked permissions erode trust quietly. | Medium: state changes in several places | API (rules, idempotence, ownership of comments, feed membership), hybrid (API creates state, UI shows it) |
+| Social: comments, favorites, follows, feed | Engagement features; wrong counts or leaked permissions erode trust quietly. | Medium: state changes in several places | API (rules, idempotence, ownership of comments, feed membership), hybrid (API creates state, UI shows it), UI (post a comment and see it after a reload, delete your own comment) |
 | Discovery: lists, tags, filters, paging | How readers find content. Wrong paging silently hides articles. | High: the app has paging defects today (see FINDINGS.md) | API (filters, explicit limit), expected-failure tests for the known paging defects |
 | Profile editing | Users expect to change their bio without surprises. | High: crashes on a valid request today (see FINDINGS.md) | Expected-failure test for the known crash |
 
@@ -73,6 +73,20 @@ In place today:
 Not built yet:
 - A test that cannot be fixed quickly is quarantined: marked with a reason and an issue, excluded from the gate,
   and tracked with a time limit. Quarantine is not deletion and not a fixed sleep.
+
+## Using AI test agents
+
+Playwright's test agents (planner, generator, healer) were tried on the comments feature and the record is in [AGENTS-LOG.md](AGENTS-LOG.md). The rules below are the ones that record supports; nothing here is a claim about agents in general.
+
+- **Agent-written tests are reviewed like any other contribution.** They stay out of CI (the main config does not read `tests/agents/`) until a person has read the locators, run the test and kept it. Both generator runs produced at least one test that failed on the unmodified app, and none of the generators had run their own test.
+- **A test is trusted only after it has been shown failing.** The review breaks the feature on purpose (the patches in `docs/agents/patches/`) and checks that the right tests fail. A test that passes against a broken app is dropped.
+- **An agent may not hide a defect.** The healer marked a test `test.fixme` when the app was at fault. The diagnosis was honest, but the suite would have gone green on a skipped test. A known defect stays an expected failure with the correct assertion (see "Defects found"), and any `fixme`, skip or loosened assertion an agent writes is reviewed as a possible hidden defect.
+- **Healing a locator after a real UI change is acceptable, healing an assertion is not.** The healer fixed a renamed button by changing one locator. Anything beyond a locator, or a change that makes a failing test pass without the product changing, needs a person.
+- **Give the agents the repo's conventions.** With a short conventions file the generated tests used the page objects, builders and fixtures, with no wrong locators. Without it they found the fixtures too, but two of eight tests had locators that matched the wrong or too many elements, and comment text came from the clock.
+- **Treat an agent's explanation of a cause as a hypothesis.** When the healer could not read the answer from the checkout, it named a wrong cause and labelled it unconfirmed.
+- **Small evidence.** One feature, one reviewer, one run each. The rules above are what to do next time, not a measurement.
+
+Comments now have UI coverage: two tests, adapted from the agents' output and changed by hand, each shown failing when the feature it covers is broken.
 
 ## Trade-offs I made
 
