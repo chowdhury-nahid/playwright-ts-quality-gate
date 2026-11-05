@@ -16,6 +16,6 @@ export class LoginPage {
 
   /** Server errors render in a plain list under the heading; the app gives it no role or label. */
   get errorMessage(): Locator {
-    return this.page.locator('ul.error-messages');
+    return this.page.locator('ul.error-messages').describe('error messages');
   }
 }

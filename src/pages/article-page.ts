@@ -13,7 +13,7 @@ export class ArticlePage {
 
   /** Comments render in plain card elements; the app gives them no role or label. */
   comment(text: string): Locator {
-    return this.page.locator('.card').filter({ hasText: text });
+    return this.page.locator('.card').filter({ hasText: text }).describe(`comment "${text}"`);
   }
 
   commentBox(): Locator {

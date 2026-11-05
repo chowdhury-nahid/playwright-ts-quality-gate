@@ -21,7 +21,7 @@ export class Navbar {
 
   /** The dropdown toggle shows the username; it is a div, so match by text. */
   userMenu(username: string): Locator {
-    return this.nav.getByText(username, { exact: true });
+    return this.nav.getByText(username, { exact: true }).describe(`user menu of "${username}"`);
   }
 
   async logout(username: string): Promise<void> {
