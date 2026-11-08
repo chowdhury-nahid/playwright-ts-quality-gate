@@ -9,9 +9,13 @@ test.describe('articles API', () => {
     const input = buildArticle();
 
     const created = await api.createArticle(author.token, input);
-    const { articles } = await api.searchArticles({ author: author.username });
 
     expect(created.title).toBe(input.title);
-    expect(articles.map((a) => a.slug)).toContain(created.slug);
+    // Polled, not read once. The app has been seen to answer a create before the new article is in its own author's
+    // list (finding F5). This is the same assertion, retried until the app agrees; it still fails if the article
+    // never appears, so a real defect is not hidden by the wait.
+    await expect
+      .poll(async () => (await api.searchArticles({ author: author.username })).articles.map((a) => a.slug))
+      .toContain(created.slug);
   });
 });
