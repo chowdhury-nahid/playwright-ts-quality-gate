@@ -159,12 +159,15 @@ export function handleSummary(data: SummaryData): Record<string, string> {
       .join(' ');
     return `${name}: ${parts}`;
   };
+  // startsWith, not equality, so the per-endpoint sub-metrics are printed too. Run 42481092609 counted one failed
+  // request in 762 and the printed summary could not say which endpoint, because `http_req_failed{endpoint:...}`
+  // did not match an equality test.
   const names = Object.keys(data.metrics).filter(
     (name) =>
       name.startsWith('http_req_duration') ||
+      name.startsWith('http_req_failed') ||
+      name.startsWith('checks') ||
       name === 'http_reqs' ||
-      name === 'http_req_failed' ||
-      name === 'checks' ||
       name === 'dropped_iterations',
   );
   const text = ['', 'Load test summary (see the uploaded summary.json for everything):', ...names.map(line), ''].join(
