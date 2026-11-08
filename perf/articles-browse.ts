@@ -53,11 +53,34 @@ export const options: Options = {
       maxVUs: 10,
     },
   },
-  thresholds: {},
+  // Discovery bounds, not budgets. k6 reports a tagged sub-metric in the end-of-test summary only if that
+  // sub-metric carries a threshold, and the first run proved it: the summary held the overall duration and nothing
+  // per endpoint. So every endpoint gets a bound that cannot fail, which makes its numbers appear. Measured budgets
+  // replace these once three runs at the chosen rate exist, and then they are allowed to fail.
+  thresholds: {
+    'http_req_duration{endpoint:articles_list}': ['p(95)<60000'],
+    'http_req_duration{endpoint:article}': ['p(95)<60000'],
+    'http_req_duration{endpoint:comments}': ['p(95)<60000'],
+    'http_req_duration{endpoint:create_article}': ['p(95)<60000'],
+    'http_req_failed{endpoint:articles_list}': ['rate<=1'],
+    'http_req_failed{endpoint:article}': ['rate<=1'],
+    'http_req_failed{endpoint:comments}': ['rate<=1'],
+    'http_req_failed{endpoint:create_article}': ['rate<=1'],
+  },
   summaryTrendStats: ['avg', 'min', 'med', 'p(95)', 'p(99)', 'max'],
 };
 
 const unique = (): string => `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
+
+// A failed request has to say which one it was. The first run reported one failure in 765 requests and the summary
+// could not tell which endpoint it came from, which is no use when the threshold is going to be "none of them".
+const expectStatus = (label: string, res: { status: number; body: unknown }, allowed: number[]): boolean => {
+  const ok = allowed.includes(res.status);
+  if (!ok) {
+    console.error(`${label} returned ${res.status}, expected one of ${allowed.join(' or ')}: ${String(res.body).slice(0, 300)}`);
+  }
+  return ok;
+};
 
 // One registration and one article seed for the whole test: the app hashes passwords, so logging in per iteration
 // would measure the hash, not the application.
@@ -95,7 +118,7 @@ export function setup(): SetupData {
 // What a reader does: the list, then an article, then its comments.
 export function browse(data: SetupData): void {
   const list = http.get(`${BASE_URL}/api/articles?limit=10&offset=0`, { tags: { endpoint: 'articles_list' } });
-  check(list, { 'list returned 200': (r) => r.status === 200 });
+  check(list, { 'list returned 200': (r) => expectStatus('GET /api/articles', r, [200]) });
 
   const slug = data.slugs[Math.floor(Math.random() * data.slugs.length)];
   if (slug === undefined) {
@@ -103,10 +126,10 @@ export function browse(data: SetupData): void {
   }
 
   const article = http.get(`${BASE_URL}/api/articles/${slug}`, { tags: { endpoint: 'article' } });
-  check(article, { 'article returned 200': (r) => r.status === 200 });
+  check(article, { 'article returned 200': (r) => expectStatus(`GET /api/articles/${slug}`, r, [200]) });
 
   const comments = http.get(`${BASE_URL}/api/articles/${slug}/comments`, { tags: { endpoint: 'comments' } });
-  check(comments, { 'comments returned 200': (r) => r.status === 200 });
+  check(comments, { 'comments returned 200': (r) => expectStatus(`GET /api/articles/${slug}/comments`, r, [200]) });
 
   sleep(0.5);
 }
@@ -123,7 +146,7 @@ export function write(data: SetupData): void {
     headers: { ...JSON_HEADERS, Authorization: `Token ${data.token}` },
     tags: { endpoint: 'create_article' },
   });
-  check(created, { 'create returned 200 or 201': (r) => r.status === 200 || r.status === 201 });
+  check(created, { 'create returned 200 or 201': (r) => expectStatus('POST /api/articles', r, [200, 201]) });
 }
 
 // Writes the machine readable summary for the CI artifact and keeps a short human summary on stdout.
