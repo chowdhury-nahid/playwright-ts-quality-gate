@@ -1,0 +1,57 @@
+name: perf
+
+on:
+  workflow_dispatch:
+    inputs:
+      rate:
+        description: Browse iterations per second
+        required: false
+        default: '4'
+      duration:
+        description: How long to hold the rate
+        required: false
+        default: '60s'
+
+concurrency:
+  group: perf-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Start the app under test
+        run: npm run sut:up
+      - uses: grafana/setup-k6-action@v1
+      - name: Record the k6 version
+        run: k6 version
+      - name: Run the load test
+        env:
+          PERF_BASE_URL: http://localhost:3001
+          PERF_RATE: ${{ inputs.rate || '4' }}
+          PERF_DURATION: ${{ inputs.duration || '60s' }}
+        run: k6 run perf/articles-browse.ts
+      - name: Upload the summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: k6-summary
+          path: perf/results/
+          retention-days: 30
+      - name: App logs on failure
+        if: failure()
+        run: docker compose -f sut/docker-compose.yml logs --no-color
+      - name: Stop the app
+        if: always()
+        run: npm run sut:down

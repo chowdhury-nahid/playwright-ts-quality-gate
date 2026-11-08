@@ -3,6 +3,7 @@ playwright-report/
 test-results/
 blob-report/
 .sut-local/
+perf/results/
 .env.local
 
 .claude/settings.local.json
