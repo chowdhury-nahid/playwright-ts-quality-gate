@@ -1,8 +1,9 @@
 // Load test for the app under test's read path, plus a low rate write.
 //
-// Shape: a fixed arrival rate, not a ramp to failure. The app serves the article list with a query per article,
-// so throughput is flat and latency rises in proportion to concurrency. A gate that pushes the app past that point
-// measures a cliff that moves between runs; a fixed rate measures latency at a load the app can serve.
+// Shape: a fixed arrival rate, not a ramp to failure. On the CI runner (Postgres in Docker, k6 on the same machine)
+// latency is flat from 4 to 16 browse iterations a second and the app saturates between 32 and 48, so the default
+// rate is 16, half of the measured knee. A ramp would measure where that cliff is, and it moves with the runner;
+// a fixed rate measures latency at a load the app can serve.
 //
 // Thresholds live in `options.thresholds` and come from measured CI runs, recorded in perf/README.md. Never guess one.
 import http from 'k6/http';
@@ -11,7 +12,7 @@ import type { Options } from 'k6/options';
 
 const BASE_URL = __ENV.PERF_BASE_URL ?? 'http://localhost:3001';
 const SEED_ARTICLES = Number(__ENV.PERF_SEED_ARTICLES ?? '10');
-const RATE = Number(__ENV.PERF_RATE ?? '4');
+const RATE = Number(__ENV.PERF_RATE ?? '16');
 const DURATION = __ENV.PERF_DURATION ?? '60s';
 // A browse iteration lasts about 0.55 s (half a second of think time plus three fast requests), so holding a rate of
 // R a second needs about 0.55 * R virtual users. The cap has to sit above that, or k6 drops iterations because it ran
@@ -20,7 +21,7 @@ const MAX_VUS = Number(__ENV.PERF_MAX_VUS ?? '40');
 // Users the browse scenario starts with. k6 can add users mid-run up to MAX_VUS, but initialising one takes time and
 // iterations that arrive meanwhile are dropped. Run 42549197714 at 32 a second (about 18 users needed, 10 allocated,
 // 40 allowed) dropped 13 of about 1,920 iterations with no sign of the app struggling. Allocating about one user per
-// iteration a second up front gives roughly twice the users needed, and leaves the default rate of 4 at 10.
+// iteration a second up front gives roughly twice the users needed (16 at the default rate of 16).
 const PRE_ALLOCATED_VUS = Math.min(MAX_VUS, Math.max(10, Math.ceil(RATE)));
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -62,19 +63,31 @@ export const options: Options = {
       maxVUs: 10,
     },
   },
-  // Discovery bounds, not budgets. k6 reports a tagged sub-metric in the end-of-test summary only if that
-  // sub-metric carries a threshold, and the first run proved it: the summary held the overall duration and nothing
-  // per endpoint. So every endpoint gets a bound that cannot fail, which makes its numbers appear. Measured budgets
-  // replace these once three runs at the chosen rate exist, and then they are allowed to fail.
+  // Budgets, measured. Each duration budget is the highest p(95) seen in any clean run at or below the gate rate, plus
+  // 50 percent for runner variance, rounded up to 5 ms. Latency is flat from 4 to 16 iterations a second, so the runs
+  // at 4 and 8 count as evidence for 16. Eight runs on ubuntu-latest, k6 2.3.0 (full table in perf/README.md):
+  //   rate 4:  42481092609, 42481752828, 42548210448    rate 8:  42548562614
+  //   rate 16: 42548894571, 42550567521, 42550827057, 42551092862
+  // Highest p(95), milliseconds: list 51.83, article 6.84, comments 2.41, create 47.46.
+  // Create has only 31 samples a run, so its p(95) is set by the second slowest request, hence the wide budget.
+  //
+  // Failures: none tolerated on article, comments and create. The article list tolerates under 1 percent. The app
+  // creates an article and writes its author afterwards (finding F5 in docs/FINDINGS.md), so a list read that lands in
+  // that window returns a 500. At the gate rate that cost 0 or 1 of about 960 list reads in each of the three repeats
+  // (0.1 percent at most), 10 of 1,921 at 32 a second and 6 to 8 percent at 48 and 64. Zero tolerance would flap at the
+  // gate rate; 1 percent still fails when the defect gets ten times worse. Remove the tolerance when the app is fixed.
+  //
+  // No dropped iterations: k6 dropping iterations at the gate rate means the app could not keep up.
   thresholds: {
-    'http_req_duration{endpoint:articles_list}': ['p(95)<60000'],
-    'http_req_duration{endpoint:article}': ['p(95)<60000'],
-    'http_req_duration{endpoint:comments}': ['p(95)<60000'],
-    'http_req_duration{endpoint:create_article}': ['p(95)<60000'],
-    'http_req_failed{endpoint:articles_list}': ['rate<=1'],
-    'http_req_failed{endpoint:article}': ['rate<=1'],
-    'http_req_failed{endpoint:comments}': ['rate<=1'],
-    'http_req_failed{endpoint:create_article}': ['rate<=1'],
+    'http_req_duration{endpoint:articles_list}': ['p(95)<80'],
+    'http_req_duration{endpoint:article}': ['p(95)<15'],
+    'http_req_duration{endpoint:comments}': ['p(95)<5'],
+    'http_req_duration{endpoint:create_article}': ['p(95)<75'],
+    'http_req_failed{endpoint:articles_list}': ['rate<0.01'],
+    'http_req_failed{endpoint:article}': ['rate==0'],
+    'http_req_failed{endpoint:comments}': ['rate==0'],
+    'http_req_failed{endpoint:create_article}': ['rate==0'],
+    dropped_iterations: ['count==0'],
   },
   summaryTrendStats: ['avg', 'min', 'med', 'p(95)', 'p(99)', 'max'],
 };
