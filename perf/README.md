@@ -70,8 +70,13 @@ is fixed. No iteration may be dropped.
 ## The gate was seen to fail
 
 A threshold is only worth claiming once it has gone red. On the branch for this change the list budget was set to
-1 ms and the job failed on that threshold: PROOF_FAIL_RUN. With the real budgets restored the same job passed:
-PROOF_PASS_RUN.
+1 ms and the job failed on that threshold, with `thresholds on metrics 'http_req_duration{endpoint:articles_list}'
+have been crossed` and exit code 99:
+[42551891216](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/runs/42551891216). With the real
+budgets restored the same job passed:
+[42552151657](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/runs/42552151657). An earlier run
+with the budgets in place, using the workflow's defaults, also passed:
+[42551593686](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/runs/42551593686).
 
 ## What this does not show
 
@@ -79,8 +84,13 @@ PROOF_PASS_RUN.
   for the app.
 - Runner variance is large. The same load produced a list average of 41 ms on one runner and 20 ms on another. The
   50 percent headroom is for that, and it also means a regression smaller than about 50 percent is invisible.
-- The failure counts are small (0 to 10 per run) and the link between the app's author write and the failed reads is
-  an inference from the app's source plus a local experiment (see F5), not something a run proved.
+- The failure counts are small (0 to 10 per run). The mechanism is shown locally: widening the app's author write by
+  800 ms turned the same list request into `toAppend.hasFollower is not a function`. That the CI failures are that
+  mechanism is an inference from the identical error text and stack trace (`appendFollowers`, `allArticles`), not
+  something a run isolated.
+- At the gate rate, in four of the five latest runs the single failed list read was the first browse request, 12 to 13
+  ms after `setup()` finished. That is when the write scenario creates its first article, so the failures look as
+  much like a start-up collision as a steady rate. The 1 percent tolerance covers either.
 - Local numbers are not comparable. `npm run sut:local` runs SQLite in one process, where the article list was capped
   at about 25 requests a second whatever the number of connections. On Postgres in CI the same list stays flat to 16
   a second and then saturates, so the local flat-throughput shape does not carry over to CI.
