@@ -5,7 +5,8 @@
 TypeScript Playwright suite (API and UI) run against a pinned, self-hosted Conduit app, with a CI workflow that
 lints, type-checks, starts the app and runs the tests.
 
-Status: phase 4 of 5. Not built yet: performance testing (phase 5).
+Status: phase 5 of 5. The planned phases are built: the suite, the CI gate, the nightly and canary runs, the
+test-agents experiment, and a weekly load test.
 Design decisions are in `docs/decisions/`; the reasoning behind the tests is in [docs/STRATEGY.md](docs/STRATEGY.md).
 
 ## Run it
@@ -32,8 +33,10 @@ Latest green CI run on `main` with all of the tests below: [36 passed in 12.9s](
   `docs/decisions/0005-tests-do-not-read-shared-lists.md`).
 - [docs/STRATEGY.md](docs/STRATEGY.md): what is tested at which level, and what is left out.
 - [docs/AGENTS-LOG.md](docs/AGENTS-LOG.md) and [docs/FEATURES.md](docs/FEATURES.md): see "Test agents and new features" below.
-- [docs/FINDINGS.md](docs/FINDINGS.md): four defects found in the app under test. Each is a test that asserts the
-  correct behaviour and is marked as an expected failure, so the build turns red the day the app is fixed.
+- [docs/FINDINGS.md](docs/FINDINGS.md): six findings in the app under test. F1 to F4 are tests that assert the correct
+  behaviour and are marked as expected failures, so the build turns red the day the app is fixed. F5 (a new article has
+  no author for a few milliseconds, which breaks two list endpoints in that gap) is intermittent, and F6 (the article
+  list costs more the more articles it returns) is about speed, so those are covered by a polling test and the load test.
 - App under test: [TonyMckes/conduit-realworld-example-app](https://github.com/TonyMckes/conduit-realworld-example-app),
   pinned by commit in `sut/.env` (MIT licence). It uses hash routing, so URLs look like `/#/login`.
 
@@ -54,6 +57,14 @@ Latest green CI run on `main` with all of the tests below: [36 passed in 12.9s](
   The second run passed on all three browsers.
 - **Canary** (`.github/workflows/canary.yml`): the suite runs daily against the next Playwright release channel and
   opens an issue, with the version tested, when it fails.
+- **Load test** (`.github/workflows/perf.yml`, `perf/`): a k6 script runs every Monday and on demand against the same
+  Dockerised app, at a fixed 16 browse iterations a second, which is half of where the app stopped coping on CI (flat to
+  16 a second, first trouble at 32, saturated by 48). The latency budgets are measured, not guessed: the highest p95 in
+  eight clean runs plus 50 percent. The gate was seen to fail (a 1 ms budget turned the run red on exactly that
+  threshold, [run 42551891216](https://github.com/chowdhury-nahid/playwright-ts-quality-gate/actions/runs/42551891216)) and
+  to pass with the real budgets. It does not block merges, because shared runners differ enough to turn a build red
+  for no reason ([ADR 0006](docs/decisions/0006-load-test-runs-weekly-at-half-the-knee.md)). The tables and every run link are in
+  [perf/README.md](perf/README.md).
 - **Dependency updates:** Dependabot proposes weekly updates for npm and GitHub Actions; each is judged by its CI result.
 - **No sharding yet**, with the measurements behind that choice in [ADR 0004](docs/decisions/0004-no-sharding-yet.md).
 
@@ -80,5 +91,6 @@ behind the structure are recorded in `docs/decisions/`.
 - `src/pages/`, `src/components/` page objects, no assertions
 - `tests/api/`, `tests/hybrid/`, `tests/e2e/` the tests, grouped by level
 - `src/data/` builders for unique test data
+- `perf/` the k6 load test, its own tsconfig, and the measured numbers behind its thresholds
 - `sut/` the app under test (Docker Compose for CI, a no-Docker mode for local use)
 - `docs/` strategy, findings, the agents log, the features log and `decisions/` (architecture decision records)

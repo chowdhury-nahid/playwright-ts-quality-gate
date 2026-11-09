@@ -44,16 +44,24 @@ Each section says what is in place today and what is planned, so nothing here cl
   (see ADR 0005). The API tests cover listing and filtering.
 - **Accessibility and security scanning.** Valuable, but they are separate disciplines with their own tooling.
   Out of scope here; ownership checks are covered, penetration testing is not.
-- **Performance and load.** Planned as a later, separate piece (a load test in CI), not mixed in here.
+- **Performance as part of the functional suite.** Load is tested by a separate k6 script on its own schedule (see
+  "Performance" below), because a load test and a functional test fail for different reasons and want different
+  cadences.
 - **Email, password reset, payments.** The app has none of them.
 - **The app's own internals.** Tests treat the app as a black box through its API and UI.
 
 ## Defects found, and how they are handled
 
-Four defects in the app (see FINDINGS.md) are recorded as tests that assert the correct behaviour and are marked as
-expected failures. The build stays green while the defect exists and turns red the day it is fixed, so the suite
-notices when the world changes. Each was shown to fail for its stated reason before being marked as expected. A known
-defect is never hidden by skipping a test or loosening an assertion.
+Four defects in the app (F1 to F4 in FINDINGS.md) are recorded as tests that assert the correct behaviour and are
+marked as expected failures. The build stays green while the defect exists and turns red the day it is fixed, so the
+suite notices when the world changes. Each was shown to fail for its stated reason before being marked as expected. A
+known defect is never hidden by skipping a test or loosening an assertion.
+
+Two findings are handled differently because a `test.fail()` test is the wrong tool for them. F5 (a new article has no
+author for a few milliseconds) is intermittent: an expected-failure test would turn the build red every time the app
+behaved. The test that met it polls instead of reading once, and the load test carries a named tolerance for it. F6
+(the article list costs more the more articles it returns) is about speed, and a latency assertion in the functional
+suite would be flaky, so the load test's list budget is its check.
 
 ## Flakiness policy
 
@@ -69,10 +77,43 @@ In place today:
   feed shows only the newest 3 articles of all users), so another test could push the article off the page. It was
   reproduced locally, fixed by reading lists scoped to the test's own data, and written up in ADR 0005. The retry
   alone would have hidden it.
+- The second case could not be reproduced. A pull request's CI run failed on `an article created by a user appears
+  in that author's article list`: the author's list came back empty straight after a successful create, and the test
+  passed on retry (run 42478221401). Two probes in CI, 40 sequential and 300 concurrent create-then-read pairs, were
+  both green, so the cause stayed a suspicion. The test now polls the same assertion, which tolerates a delay and
+  still fails if the article never appears; no sleep, no skip, no weaker assertion. The finding is F5, with the
+  limits of what is known. Later the load test met the same mechanism from the other side (a list read returning a
+  500 in the same gap), and a local experiment that widened the gap reproduced both symptoms.
 
 Not built yet:
 - A test that cannot be fixed quickly is quarantined: marked with a reason and an issue, excluded from the gate,
   and tracked with a time limit. Quarantine is not deletion and not a fixed sleep.
+
+## Performance
+
+A k6 script in `perf/`, run by `.github/workflows/perf.yml` every Monday and on demand. The numbers, run links and
+the arithmetic behind every threshold are in `perf/README.md` and ADR 0006; this section is the reasoning.
+
+- **What is loaded, and why.** The read path a visitor walks (the article list, then one article, then its comments)
+  at a fixed rate, plus a create every two seconds. The list is the expensive read: at the same load it took about 30
+  ms on average against about 4 ms for one article and under 2 ms for its comments (run 42550827057). Its source runs
+  several queries for every article it returns, one after another, so its cost grows with the page size (F6).
+- **A fixed rate, not a ramp to failure.** On the CI runner the app is flat up to 16 browse iterations a second, has
+  its first trouble at 32 and is saturated by 48, so the gate runs at half the knee. A ramp would measure where the
+  cliff is, and the cliff moves with the runner: the same load gave a list average of 41 ms on one runner and 20 ms
+  on another.
+- **Thresholds are measured, not chosen.** Each latency budget is the highest p95 in any clean run at or below the
+  gate rate plus 50 percent, rounded up to 5 ms. Failures are not tolerated, except that the article list may fail
+  under 1 percent of reads, a named and temporary tolerance for F5 that is removed when the app is fixed. The gate was
+  seen to fail: a 1 ms budget turned the job red on exactly that threshold, then the real value turned it green again.
+- **It does not gate merges.** Shared runners differ enough (a list average of 41 ms against 20 ms for the same
+  load) to turn the build red for reasons unrelated to a change. A red run is looked at, not enforced (ADR 0006).
+- **What it cannot see.** A regression smaller than the headroom, about 50 percent. Anything beyond one app instance
+  and one shared machine. The browser, login (the app hashes passwords, which would swamp the numbers) and soak or
+  spike profiles are not load tested.
+- **A correction I made on the way.** The first local measurement, on SQLite, said throughput is flat however many
+  connections are used. On Postgres in CI that was wrong: latency is flat up to 16 a second and then the app
+  saturates. Local load numbers are not carried over to CI.
 
 ## Using AI test agents
 
@@ -100,3 +141,9 @@ Comments now have UI coverage: two tests, adapted from the agents' output and ch
   tests take seconds inside a job of about two minutes, most of which is installing and starting the app, so
   sharding would repeat the slow part for no gain (ADR 0004). The parallelism that is worth having is the nightly
   run across three browsers. Sharding will be added when the tests outgrow the set-up time.
+- **A weekly load test over a merge gate.** A required performance check would be red or green depending on which
+  shared runner a pull request got. A weekly run with measured headroom is noisier to read but honest about it, and
+  it costs the ability to block a slow change at review time.
+- **A tolerance for one app defect over zero tolerance.** The load test accepts under 1 percent of article list reads
+  failing, because the app produces 0 or 1 such failures in a run of about 960 reads on its own. Zero tolerance
+  would have been red in four of the five latest runs at the gate rate, which teaches people to ignore it.
