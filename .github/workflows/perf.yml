@@ -44,7 +44,7 @@ jobs:
         # k6 does not create the directory it writes the summary into, so the first run lost the file.
         run: |
           mkdir -p perf/results
-          k6 run perf/articles-browse.ts
+          k6 run --quiet perf/articles-browse.ts
       - name: Upload the summary
         if: always()
         uses: actions/upload-artifact@v7

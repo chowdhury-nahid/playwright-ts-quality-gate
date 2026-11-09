@@ -112,7 +112,29 @@ export function setup(): SetupData {
   if (slugs.length !== SEED_ARTICLES) {
     fail(`setup: seeded ${slugs.length} articles, expected ${SEED_ARTICLES}`);
   }
+  waitUntilSeedIsReadable(user.username);
   return { token, slugs };
+}
+
+// The app answers a create before it has finished writing the article's author (finding F5 in docs/FINDINGS.md).
+// While that write is pending, the author filtered list omits the article and the plain article list returns a 500
+// (`toAppend.hasFollower is not a function`). The first three load runs each failed exactly one request, the first
+// one, 0.3 seconds in, because the first browse iteration read the list while the last seeded article was still in
+// that window. That is the app's defect, but it is triggered by the test's own set-up, so the set-up waits until the
+// app can serve what it just wrote. Later requests, from the write scenario, are left exposed on purpose: if the
+// window opens there, it is a real finding and the correctness thresholds will say so.
+function waitUntilSeedIsReadable(username: string): void {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const list = http.get(`${BASE_URL}/api/articles?limit=10&offset=0`);
+    const mine = http.get(`${BASE_URL}/api/articles?author=${username}&limit=${SEED_ARTICLES}`);
+    const count = mine.status === 200 ? (mine.json('articlesCount') as number) : -1;
+    if (list.status === 200 && count === SEED_ARTICLES) {
+      console.log(`setup: seeded articles readable after ${attempt} extra checks`);
+      return;
+    }
+    sleep(0.1);
+  }
+  fail(`setup: ${SEED_ARTICLES} seeded articles were not readable after 10 seconds`);
 }
 
 // What a reader does: the list, then an article, then its comments.
