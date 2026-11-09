@@ -1,12 +1,17 @@
 name: perf
 
+# The load test. Weekly, and on demand. It is not a required check for merging (ADR 0006): a red run here says the app
+# got slower or less reliable under load, and it is looked at, but it never blocks a pull request.
 on:
+  schedule:
+    # Mondays, away from nightly (00:59) and canary (01:47).
+    - cron: '23 3 * * 1'
   workflow_dispatch:
     inputs:
       rate:
-        description: Browse iterations per second
+        description: Browse iterations per second (the thresholds were measured at 16)
         required: false
-        default: '4'
+        default: '16'
       duration:
         description: How long to hold the rate
         required: false
@@ -37,13 +42,17 @@ jobs:
       - run: npm run typecheck
       - name: Start the app under test
         run: npm run sut:up
+      # Pinned to the version every measured run used, so the thresholds stay comparable. Dependabot does not watch
+      # this: bump it by hand and say so in docs/FEATURES.md.
       - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '2.3.0'
       - name: Record the k6 version
         run: k6 version
       - name: Run the load test
         env:
           PERF_BASE_URL: http://localhost:3001
-          PERF_RATE: ${{ inputs.rate || '4' }}
+          PERF_RATE: ${{ inputs.rate || '16' }}
           PERF_DURATION: ${{ inputs.duration || '60s' }}
           PERF_MAX_VUS: ${{ inputs.max_vus || '40' }}
         # k6 does not create the directory it writes the summary into, so the first run lost the file.
