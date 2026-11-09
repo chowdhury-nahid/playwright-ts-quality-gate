@@ -39,7 +39,7 @@ jobs:
           retention-days: 14
       - name: Keep the report for Pages (main only)
         if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: playwright-report/
       - name: App logs on failure
