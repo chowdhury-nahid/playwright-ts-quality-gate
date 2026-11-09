@@ -23,6 +23,12 @@ against the installed Playwright (1.64.1) and the official release notes. "Proof
 - **`test.step` `params` and `subtitle`** (1.63). No reporter in this suite shows them, so there is no benefit yet.
 - **`expect(page).toHaveURL()` with a predicate** (1.51). Not used: the two URL checks are regular expressions and read clearly.
 
+## Tools outside Playwright
+
+| Tool | Version | Where it is used | Notes |
+|---|---|---|---|
+| k6 | 2.3.0 | `perf/articles-browse.ts`, `.github/workflows/perf.yml` | Pinned in the workflow to the version every measured run used (`k6-version: '2.3.0'`), so the thresholds stay comparable. Dependabot does not watch it, so a bump is manual: re-run the load test, check the budgets in `perf/README.md` still hold, and update this line. k6 runs the TypeScript file directly but only strips the types. `perf/tsconfig.json` with `@types/k6` (2.3.1) type-checks it, and `npm run typecheck` runs both configs. The script imports nothing from `jslib.k6.io`, so the test has no runtime dependency on a CDN. |
+
 ## How this log is kept current
 
 Dependabot proposes Playwright updates in its weekly pull requests. For each release it proposes, add a line here: what the release added that matters for this suite, and whether it was adopted or skipped, with the reason.
