@@ -17,6 +17,11 @@ const DURATION = __ENV.PERF_DURATION ?? '60s';
 // R a second needs about 0.55 * R virtual users. The cap has to sit above that, or k6 drops iterations because it ran
 // out of users, which looks like the app saturating and is not.
 const MAX_VUS = Number(__ENV.PERF_MAX_VUS ?? '40');
+// Users the browse scenario starts with. k6 can add users mid-run up to MAX_VUS, but initialising one takes time and
+// iterations that arrive meanwhile are dropped. Run 42549197714 at 32 a second (about 18 users needed, 10 allocated,
+// 40 allowed) dropped 13 of about 1,920 iterations with no sign of the app struggling. Allocating about one user per
+// iteration a second up front gives roughly twice the users needed, and leaves the default rate of 4 at 10.
+const PRE_ALLOCATED_VUS = Math.min(MAX_VUS, Math.max(10, Math.ceil(RATE)));
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export interface SetupData {
@@ -44,7 +49,7 @@ export const options: Options = {
       rate: RATE,
       timeUnit: '1s',
       duration: DURATION,
-      preAllocatedVUs: 10,
+      preAllocatedVUs: PRE_ALLOCATED_VUS,
       maxVUs: MAX_VUS,
     },
     write: {
