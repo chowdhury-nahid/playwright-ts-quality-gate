@@ -11,6 +11,10 @@ on:
         description: How long to hold the rate
         required: false
         default: '60s'
+      max_vus:
+        description: Cap on virtual users for the browse scenario (about 0.55 per iteration a second)
+        required: false
+        default: '40'
 
 concurrency:
   group: perf-${{ github.ref }}
@@ -41,6 +45,7 @@ jobs:
           PERF_BASE_URL: http://localhost:3001
           PERF_RATE: ${{ inputs.rate || '4' }}
           PERF_DURATION: ${{ inputs.duration || '60s' }}
+          PERF_MAX_VUS: ${{ inputs.max_vus || '40' }}
         # k6 does not create the directory it writes the summary into, so the first run lost the file.
         run: |
           mkdir -p perf/results

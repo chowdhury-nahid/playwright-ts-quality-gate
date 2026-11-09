@@ -13,6 +13,10 @@ const BASE_URL = __ENV.PERF_BASE_URL ?? 'http://localhost:3001';
 const SEED_ARTICLES = Number(__ENV.PERF_SEED_ARTICLES ?? '10');
 const RATE = Number(__ENV.PERF_RATE ?? '4');
 const DURATION = __ENV.PERF_DURATION ?? '60s';
+// A browse iteration lasts about 0.55 s (half a second of think time plus three fast requests), so holding a rate of
+// R a second needs about 0.55 * R virtual users. The cap has to sit above that, or k6 drops iterations because it ran
+// out of users, which looks like the app saturating and is not.
+const MAX_VUS = Number(__ENV.PERF_MAX_VUS ?? '40');
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export interface SetupData {
@@ -41,7 +45,7 @@ export const options: Options = {
       timeUnit: '1s',
       duration: DURATION,
       preAllocatedVUs: 10,
-      maxVUs: 40,
+      maxVUs: MAX_VUS,
     },
     write: {
       executor: 'constant-arrival-rate',
