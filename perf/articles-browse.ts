@@ -79,7 +79,7 @@ export const options: Options = {
   //
   // No dropped iterations: k6 dropping iterations at the gate rate means the app could not keep up.
   thresholds: {
-    'http_req_duration{endpoint:articles_list}': ['p(95)<80'],
+    'http_req_duration{endpoint:articles_list}': ['p(95)<1'],
     'http_req_duration{endpoint:article}': ['p(95)<15'],
     'http_req_duration{endpoint:comments}': ['p(95)<5'],
     'http_req_duration{endpoint:create_article}': ['p(95)<75'],
